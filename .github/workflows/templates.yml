@@ -1,0 +1,59 @@
+# Creates a project from each template and builds it on Linux and macOS.
+#
+# The templates do not commit a flake.lock, so each run resolves the latest
+# inputs. The nightly run finds breakage that comes from upstream changes.
+
+name: Templates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  template:
+    name: ${{ matrix.template }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        template: [bazel]
+        include:
+          # The bazel template has a module but no targets, so
+          # `bazel build //...` fails. `bazel mod graph` downloads Bazel
+          # and resolves the module.
+          - template: bazel
+            build: |
+              bazel mod graph
+              bazel shutdown
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: cachix/install-nix-action@v31
+
+      - name: Create the project
+        env:
+          TEMPLATE: ${{ matrix.template }}
+        run: |
+          nix flake new -t "path:$GITHUB_WORKSPACE#$TEMPLATE" "$RUNNER_TEMP/project"
+          cd "$RUNNER_TEMP/project"
+          git init -q
+          git add -A
+
+      - name: Build the project
+        working-directory: ${{ runner.temp }}/project
+        env:
+          BUILD: ${{ matrix.build }}
+        run: nix develop --command bash -euo pipefail -c "$BUILD"
