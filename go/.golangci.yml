@@ -1,0 +1,21 @@
+version: "2"
+
+linters:
+  enable:
+    # Returns a nil error after checking that an error is not nil.
+    - nilerr
+    - nilnesserr
+
+    # Returns a nil value together with a nil error, which callers then
+    # dereference.
+    - nilnil
+
+  settings:
+    govet:
+      enable:
+        # Nil dereferences and nil comparisons that are certain on some path.
+        - nilness
+
+formatters:
+  enable:
+    - gofumpt

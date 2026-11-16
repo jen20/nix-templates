@@ -1,0 +1,57 @@
+# Hooks that run before each commit, managed by prek.
+#
+# `repo = "builtin"` means prek runs its own implementation, so there is
+# nothing to fetch. `repo = "local"` hooks run the tools that the Nix flake
+# puts on the PATH.
+
+# Files that are not ours to rewrite. Go and Nix generate these, and a hook
+# that reformats one puts it out of step with the tool that wrote it.
+exclude = '''(?x)^(
+    flake\.lock
+  | go\.sum
+)$'''
+
+[[repos]]
+repo = "builtin"
+hooks = [
+  # Whitespace and line endings.
+  { id = "trailing-whitespace" },
+  { id = "end-of-file-fixer" },
+  { id = "mixed-line-ending", args = ["--fix=lf"] },
+  { id = "fix-byte-order-marker" },
+
+  # Validity of data formats
+  { id = "check-json" },
+  { id = "check-yaml" },
+  { id = "check-toml" },
+
+  # Things we don't want to commit by accident
+  { id = "detect-private-key" },
+  { id = "check-merge-conflict" },
+  { id = "check-added-large-files", args = ["--maxkb=2048"] },
+
+  # Things that might break on not-macOS
+  { id = "check-case-conflict" },
+  { id = "check-illegal-windows-names" },
+  { id = "check-symlinks" },
+  { id = "destroyed-symlinks" },
+  { id = "check-executables-have-shebangs" },
+  { id = "check-shebang-scripts-are-executable" },
+]
+
+# Go. gofumpt rewrites the staged files, and the commit fails if it changed
+# any. The other hooks check the whole module, so they take no file names.
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "gofumpt", name = "gofumpt", language = "system", entry = "gofumpt -w", types = ["go"] },
+  { id = "go-mod-tidy", name = "go mod tidy", language = "system", entry = "go mod tidy -diff", files = '(^|/)go\.(mod|sum)$|\.go$', pass_filenames = false },
+  { id = "golangci-lint", name = "golangci-lint", language = "system", entry = "golangci-lint run ./...", types = ["go"], pass_filenames = false },
+]
+
+# Bash scripts.
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "shellcheck", name = "shellcheck", language = "system", entry = "shellcheck", types = ["shell"] },
+]

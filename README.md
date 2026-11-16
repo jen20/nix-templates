@@ -31,6 +31,7 @@ Replace `<template>` with the name of a template.
 | Template | Description |
 | -------- | ----------- |
 | [`bazel`](#bazel) | Bazel project with Bazelisk in the development shell and an empty Bazel module. |
+| [`go`](#go) | Go module with the Go toolchain and tools from go-overlay, and prek hooks for Go. |
 
 ### bazel
 
@@ -53,6 +54,36 @@ The template contains these files:
 
 After you create the project, change the module name in `MODULE.bazel`. If the directory is not a Git repository, run `git init`. Then run `git add -A` to stage the template files. In a Git repository, Nix reads only the files that Git tracks, so the development shell does not load before you stage `flake.nix`. Then run `direnv allow` to enter the development shell.
 
+### go
+
+To start a project from this template, run:
+
+```sh
+nix flake init -t github:jen20/nix-templates#go
+```
+
+The template contains these files:
+
+| File | Purpose |
+| ---- | ------- |
+| `flake.nix` | Development shell with Go, prek, and shellcheck. When you enter the shell, it installs the prek hooks. |
+| `.envrc` | Loads the development shell through direnv. |
+| `go.mod` | Go module named `example.com/project`. The `go` line sets the Go version of the development shell. |
+| `main.go` | A program that prints a greeting. |
+| `prek.toml` | Hooks that run before each commit. |
+| `.golangci.yml` | Linters and formatters for golangci-lint. |
+| `.gitignore` | Ignores `.direnv/`, `.idea/`, `bin/`, and Nix build results. |
+
+The development shell gets Go from [go-overlay](https://github.com/purpleclay/go-overlay). It also gets these Go tools from go-overlay: `delve`, `gofumpt`, `golangci-lint`, `gopls`, `govulncheck`, and `staticcheck`.
+
+The prek hooks check whitespace, data formats, and files that you do not want to commit. For Go, they do these steps:
+
+1. They format the staged Go files with gofumpt. If gofumpt changes a file, the commit fails. Add the changes and commit again.
+2. They run `go mod tidy -diff`. If `go.mod` or `go.sum` is not tidy, the commit fails. Run `go mod tidy` to fix it.
+3. They run `golangci-lint run ./...` on the whole module.
+
+After you create the project, change the module path in `go.mod`. If the directory is not a Git repository, run `git init`. Then run `git add -A` to stage the template files. In a Git repository, Nix reads only the files that Git tracks, so the development shell does not load before you stage `flake.nix`. Then run `direnv allow` to enter the development shell.
+
 ## Adding a template
 
 1. Create a directory for the template at the repository root.
@@ -64,6 +95,6 @@ After you create the project, change the module name in `MODULE.bazel`. If the d
 
 ## Continuous integration
 
-The `Templates` workflow creates a project from each template on Linux and macOS. It enters the development shell of the project and builds the project.
+The `Templates` workflow creates a project from each template on Linux and macOS. It enters the development shell of the project and builds the project. For the go template, it also runs the prek hooks on all files.
 
 The templates do not commit a `flake.lock`, so each run uses the latest inputs. The workflow also runs each night, to find breakage that comes from upstream changes.
