@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        template: [bazel, go]
+        template: [bazel, go, rust]
         include:
           # The bazel template has a module but no targets, so
           # `bazel build //...` fails. `bazel mod graph` downloads Bazel
@@ -41,6 +41,11 @@ jobs:
             build: |
               go build ./...
               go vet ./...
+              prek run --all-files --config prek.toml
+          - template: rust
+            build: |
+              cargo build --locked
+              cargo test --locked
               prek run --all-files --config prek.toml
 
     steps:

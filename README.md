@@ -32,6 +32,7 @@ Replace `<template>` with the name of a template.
 | -------- | ----------- |
 | [`bazel`](#bazel) | Bazel project with Bazelisk in the development shell and an empty Bazel module. |
 | [`go`](#go) | Go module with the Go toolchain and tools from go-overlay, and prek hooks for Go. |
+| [`rust`](#rust) | Rust crate with the Rust toolchain from rust-overlay, and prek hooks for Rust. |
 
 ### bazel
 
@@ -84,6 +85,36 @@ The prek hooks check whitespace, data formats, and files that you do not want to
 
 After you create the project, change the module path in `go.mod`. If the directory is not a Git repository, run `git init`. Then run `git add -A` to stage the template files. In a Git repository, Nix reads only the files that Git tracks, so the development shell does not load before you stage `flake.nix`. Then run `direnv allow` to enter the development shell.
 
+### rust
+
+To start a project from this template, run:
+
+```sh
+nix flake init -t github:jen20/nix-templates#rust
+```
+
+The template contains these files:
+
+| File | Purpose |
+| ---- | ------- |
+| `flake.nix` | Development shell with the Rust toolchain, prek, and shellcheck. When you enter the shell, it installs the prek hooks. |
+| `.envrc` | Loads the development shell through direnv. |
+| `rust-toolchain.toml` | Sets the Rust channel and the toolchain components of the development shell. |
+| `Cargo.toml` | Binary crate named `project`, with the 2024 edition. |
+| `Cargo.lock` | Lock file for the crate. The clippy hook needs it. |
+| `src/main.rs` | A program that prints a greeting. |
+| `prek.toml` | Hooks that run before each commit. |
+| `.gitignore` | Ignores `.direnv/`, `.idea/`, `target/`, and Nix build results. |
+
+The development shell gets Rust from [rust-overlay](https://github.com/oxalica/rust-overlay). The overlay reads `rust-toolchain.toml`. The template uses the `stable` channel, so `flake.lock` sets the exact Rust version. To use a fixed version, set `channel` to a version number, for example `"1.100.0"`. The toolchain includes clippy, rustfmt, rust-analyzer, and the standard library source.
+
+The prek hooks check whitespace, data formats, and files that you do not want to commit. For Rust, they do these steps:
+
+1. They format the staged Rust files with rustfmt. If rustfmt changes a file, the commit fails. Add the changes and commit again.
+2. They run `cargo clippy --all-targets --locked -- -D warnings` on the whole crate. A clippy warning makes the commit fail. If `Cargo.lock` is out of date, the commit also fails.
+
+After you create the project, change the package name in `Cargo.toml`. If the directory is not a Git repository, run `git init`. Then run `git add -A` to stage the template files. In a Git repository, Nix reads only the files that Git tracks, so the development shell does not load before you stage `flake.nix`. Then run `direnv allow` to enter the development shell.
+
 ## Adding a template
 
 1. Create a directory for the template at the repository root.
@@ -95,6 +126,6 @@ After you create the project, change the module path in `go.mod`. If the directo
 
 ## Continuous integration
 
-The `Templates` workflow creates a project from each template on Linux and macOS. It enters the development shell of the project and builds the project. For the go template, it also runs the prek hooks on all files.
+The `Templates` workflow creates a project from each template on Linux and macOS. It enters the development shell of the project and builds the project. For the go and rust templates, it also runs the prek hooks on all files.
 
 The templates do not commit a `flake.lock`, so each run uses the latest inputs. The workflow also runs each night, to find breakage that comes from upstream changes.

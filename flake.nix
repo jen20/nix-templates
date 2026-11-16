@@ -30,6 +30,19 @@
             - Run `direnv allow` to enter the development shell. It installs the prek hooks.
           '';
         };
+
+        rust = {
+          path = ./rust;
+          description = "Rust crate with the rust-overlay toolchain, and prek hooks for Rust";
+          welcomeText = ''
+            Next steps:
+
+            - Change the package name in `Cargo.toml`.
+            - Run `git init` if this is not a Git repository yet.
+            - Run `git add -A` to stage the files. Nix ignores files that Git does not track.
+            - Run `direnv allow` to enter the development shell. It installs the prek hooks.
+          '';
+        };
       };
     };
 }
